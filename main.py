@@ -6,33 +6,64 @@
 # See the solution video in the 100 Days of Python Course for explainations.
 
 
-from datetime import datetime
-import pandas
-import random
-import smtplib
 import os
+import requests
+import smtplib
 
-# import os and use it to get the Github repository secrets
-MY_EMAIL = os.environ.get("MY_EMAIL")
-MY_PASSWORD = os.environ.get("MY_PASSWORD")
+API_KEY = os.environ.get("WEATHER_API_KEY")
+EMAIL_KEY = os.environ.get("EMAIL_KEY")
+print(f"API KEY - {API_KEY}")
+MY_LAT = 51.246910
+MY_LONG = 22.573620
+API_URL = "https://api.openweathermap.org/data/2.5/forecast"
 
-today = datetime.now()
-today_tuple = (today.month, today.day)
+params = {
+    "lon": MY_LONG,
+    "lat": MY_LAT,
+    "cnt": 4,
+    "appid": API_KEY
+}
 
-data = pandas.read_csv("birthdays.csv")
-birthdays_dict = {(data_row["month"], data_row["day"])                  : data_row for (index, data_row) in data.iterrows()}
-if today_tuple in birthdays_dict:
-    birthday_person = birthdays_dict[today_tuple]
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
-    with open(file_path) as letter_file:
-        contents = letter_file.read()
-        contents = contents.replace("[NAME]", birthday_person["name"])
 
-    with smtplib.SMTP("YOUR EMAIL PROVIDER SMTP SERVER ADDRESS") as connection:
+response = requests.get(url=API_URL, params=params)
+print(response)
+response.raise_for_status()
+
+data = response.json()
+print(data)
+
+def create_mail_content(subject, mail_body):
+    return f"Subject:{subject}\n\n{mail_body}"
+
+def send_mail(dst_email, email_subject, message):
+    my_email = "emil.testy22@gmail.com"
+    pwd = EMAIL_KEY
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as connection:
         connection.starttls()
-        connection.login(MY_EMAIL, MY_PASSWORD)
-        connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
-        )
+        connection.login(user=my_email, password=pwd)
+        print("logged in")
+        connection.sendmail(from_addr=my_email,
+                            to_addrs=dst_email,
+                            msg=create_mail_content(email_subject, message))
+condition_desc_list = []
+temp_list = []
+
+for forecast in data["list"]:
+    for condition in forecast["weather"]:
+        if condition["description"] not in condition_desc_list:
+            condition_desc_list.append(condition["description"])
+    temp_list.append(float(forecast["main"]["temp"]) - 273.15)
+
+# sprawdzanie tylko pierwszego słownika prognozy
+# condition_codes = [int(condition["weather"][0]["id"]) for condition in data["list"]]
+# condition_codes = [condition["weather"][0]["id"] for condition in data["list"]] °
+
+temp_avg = sum(temp_list) / len(temp_list)
+body = f"Average temperature - {round(temp_avg,1)} degC\n"
+body += "Weather Conditions:\n"
+for desc in condition_desc_list:
+    body += f"{desc}\n"
+
+send_mail("maciej.tkacz19@gmail.com","Pogoda na dzisiaj", body)
+
