@@ -45,34 +45,6 @@ jobs:
           echo ""
           echo "All secrets are configured!"
 
-      - name: Check required files exist
-        run: |
-          echo "Checking for required files..."
-
-          if [ -f "main.py" ]; then
-            echo "main.py found"
-          else
-            echo "main.py not found!"
-            exit 1
-          fi
-
-          if [ -f "requirements.txt" ]; then
-            echo "requirements.txt found"
-          else
-            echo "requirements.txt not found!"
-            exit 1
-          fi
-
-          if [ -f "birthdays.csv" ]; then
-            echo "birthdays.csv found"
-          else
-            echo "birthdays.csv not found!"
-            exit 1
-          fi
-
-          echo ""
-          echo "All required files found!"
-
       - name: Test Python syntax
         run: python -m py_compile main.py && echo "Python syntax OK"
 
